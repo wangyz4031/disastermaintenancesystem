@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <link th:href="@{/layui/css/layui.css}" rel="stylesheet" />
+</head>
+<script th:src="@{/jquery/jquery-3.4.1.js}">
+</script>
+<script th:inline="none">
+    var monitorunittimer=new Object();
+    function sendMonitorUnitDevice(data) {
+        $.ajax({
+            url: "/monitorunitdata/sendMonitorUnitData",
+            type: 'POST',
+            data: JSON.stringify(data.field),
+            contentType: "application/json;charset=utf-8",
+            success: function (result) {
+            }
+        });
+    }
+
+
+    layui.use('element', function() {
+        var element = layui.element;
+    });
+    layui.use(['form', 'layedit', 'laydate'], function() {
+        var form = layui.form
+            , layer = layui.layer
+            , layedit = layui.layedit
+            , laydate = layui.laydate;
+        form.render('radio');
+        form.render('select');
+        form.render();
+        //监听提交
+        form.on('submit(form1filter)', function (data) {
+            debugger;
+            if(data.field.allmonitorswitch=="on") {
+                var monitordata=new Object();
+                monitordata = getMonitorUnitInfo()
+                $.each(monitordata, function (index, item) {
+                    var monitorunit=(item.km*1000+item.meter).toString();
+                    data.field.monitorUnitCode=monitorunit;
+                    sendMonitorUnitDevice(data);
+                });
+            }
+            else{
+                sendMonitorUnitDevice(data);
+            }
+            layer.alert("发送成功");
+            return false;
+        });
+
+        form.on('submit(form2filter)', function (data) {
+            debugger;
+            monitorunittimer = setInterval(function()   //开启循环：每秒出现一次提示框
+            {
+                if(data.field.allmonitorswitch=="on") {
+                    var monitordata=new Object();
+                    monitordata = getMonitorUnitInfo()
+                    $.each(monitordata, function (index, item) {
+                        var monitorunit=(item.km*1000+item.meter).toString();
+                        data.field.monitorUnitCode=monitorunit;
+                        sendMonitorUnitDevice(data);
+                    });
+                }
+                else{
+                    sendMonitorUnitDevice(data);
+                }
+            },1000);
+            return false;
+        });
+    });
+    $(function(){
+        $("#timerStop").click(function(){
+            clearInterval(monitorunittimer);
+        });
+        var data = new Object();
+        data= getMonitorUnitInfo();
+        $.each(data, function (index, item) {
+            $('#monitorUnitCode').append(new Option("K"+item.km+"+"+item.meter,item.km*1000+item.meter));
+            $('#monitorUnitCode2').append(new Option("K"+item.km+"+"+item.meter,item.km*1000+item.meter));
+        });
+        layui.form.render("select");
+    });
+
+    function getMonitorUnitInfo() {
+        var datas=null;
+        $.ajax({
+            url: '/basestation/queryAll',
+            type: 'GET',
+            contentType: "application/json;charset=utf-8",
+            async:false,
+            success: function (result) {
+                datas = result.data;
+            }
+        });
+        return datas;
+    }
+
+
+</script>
+<body>
+<div>
+
+    <div class="layui-tab">
+        <ul class="layui-tab-title">
+            <li class="layui-this">正常数据</li>
+            <li>定时数据</li>
+        </ul>
+        <div class="layui-tab-content">
+            <div class="layui-tab-item layui-show">
+                <form class="layui-form" th:align="center">
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">监控单元里程</label>
+                        <div class="layui-input-inline">
+                            <select id="monitorUnitCode" name="monitorUnitCode" required lay-verify="required"
+                                    lay-filter="monitorunitcodefilter">
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">全部发送</label>
+                        <div class="layui-input-inline">
+                            <input type="checkbox" name="allmonitorswitch" lay-skin="switch" lay-text="ON|OFF">
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">主机A主备状态</label>
+                        <div class="layui-input-inline">
+                            <select name="controlModuleAHostStatus" required lay-verify="required">
+                                <option value="0">主</option>
+                                <option value="1">备</option>
+                                <option value="2">未知</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">主机A工作状态</label>
+                        <div class="layui-input-inline">
+                            <select name="controlModuleAStatus" required lay-verify="required">
+                                <option value="0">正常</option>
+                                <option value="1">故障</option>
+                                <option value="2">未知</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">主机A网络状态</label>
+                        <div class="layui-input-inline">
+                            <select name="controlModuleANetStatus" required lay-verify="required">
+                                <option value="0">正常</option>
+                                <option value="1">故障</option>
+                                <option value="2">未知</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">主机B主备状态</label>
+                        <div class="layui-input-inline">
+                            <select name="controlModuleBHostStatus" required lay-verify="required">
+                                <option value="0">主</option>
+                                <option value="1">备</option>
+                                <option value="2">未知</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">主机B工作状态</label>
+                        <div class="layui-input-inline">
+                            <select name="controlModuleBStatus" required lay-verify="required">
+                                <option value="0">正常</option>
+                                <option value="1">故障</option>
+                                <option value="2">未知</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">主机B网络状态</label>
+                        <div class="layui-input-inline">
+                            <select name="controlModuleBNetStatus" required lay-verify="required">
+                                <option value="0">正常</option>
+                                <option value="1">故障</option>
+                                <option value="2">未知</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">A板卡1状态</label>
+                        <div class="layui-input-inline">
+                            <select name="boardCardA1Status" required lay-verify="required">
+                                <option value="0">正常</option>
+                                <option value="1">故障</option>
+                                <option value="2">未知</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">A板卡2状态</label>
+                        <div class="layui-input-inline">
+                            <select name="boardCardA2Status" required lay-verify="required">
+                                <option value="0">正常</option>
+                                <option value="1">故障</option>
+                                <option value="2">未知</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">A板卡3状态</label>
+                        <div class="layui-input-inline">
+                            <select name="boardCardA3Status" required lay-verify="required">
+                                <option value="0">正常</option>
+                                <option value="1">故障</option>
+                                <option value="2">未知</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">A板卡4状态</label>
+                        <div class="layui-input-inline">
+                            <select name="boardCardA4Status" required lay-verify="required">
+                                <option value="0">正常</option>
+                                <option value="1">故障</option>
+                                <option value="2">未知</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">A板卡5状态</label>
+                        <div class="layui-input-inline">
+                            <select name="boardCardA5Status" required lay-verify="required">
+                                <option value="0">正常</option>
+                                <option value="1">故障</option>
+                                <option value="2">未知</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">B板卡1状态</label>
+                        <div class="layui-input-inline">
+                            <select name="boardCardB1Status" required lay-verify="required">
+                                <option value="0">正常</option>
+                                <option value="1">故障</option>
+                                <option value="2">未知</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">B板卡2状态</label>
+                        <div class="layui-input-inline">
+                            <select name="boardCardB2Status" required lay-verify="required">
+                                <option value="0">正常</option>
+                                <option value="1">故障</option>
+                                <option value="2">未知</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">B板卡3状态</label>
+                        <div class="layui-input-inline">
+                            <select name="boardCardB3Status" required lay-verify="required">
+                                <option value="0">正常</option>
+                                <option value="1">故障</option>
+                                <option value="2">未知</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">B板卡4状态</label>
+                        <div class="layui-input-inline">
+                            <select name="boardCardB4Status" required lay-verify="required">
+                                <option value="0">正常</option>
+                                <option value="1">故障</option>
+                                <option value="2">未知</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">B板卡5状态</label>
+                        <div class="layui-input-inline">
+                            <select name="boardCardB5Status" required lay-verify="required">
+                                <option value="0">正常</option>
+                                <option value="1">故障</option>
+                                <option value="2">未知</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">Ups1输入状态</label>
+                        <div class="layui-input-inline">
+                            <select name="ups1InputStatus" required lay-verify="required">
+                                <option value="0">正常</option>
+                                <option value="1">故障</option>
+                                <option value="2">未知</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">Ups1输出状态</label>
+                        <div class="layui-input-inline">
+                            <select name="ups1OutputStatus" required lay-verify="required">
+                                <option value="0">正常</option>
+                                <option value="1">故障</option>
+                                <option value="2">未知</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">Ups1网络状态</label>
+                        <div class="layui-input-inline">
+                            <select name="ups1NetStatus" required lay-verify="required">
+                                <option value="0">正常</option>
+                                <option value="1">故障</option>
+                                <option value="2">未知</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">Ups2输入状态</label>
+                        <div class="layui-input-inline">
+                            <select name="ups2InputStatus" required lay-verify="required">
+                                <option value="0">正常</option>
+                                <option value="1">故障</option>
+                                <option value="2">未知</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">Ups2输出状态</label>
+                        <div class="layui-input-inline">
+                            <select name="ups2OutputStatus" required lay-verify="required">
+                                <option value="0">正常</option>
+                                <option value="1">故障</option>
+                                <option value="2">未知</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">Ups2网络状态</label>
+                        <div class="layui-input-inline">
+                            <select name="ups2NetStatus" required lay-verify="required">
+                                <option value="0">正常</option>
+                                <option value="1">故障</option>
+                                <option value="2">未知</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">电源A输入电压值</label>
+                        <div class="layui-input-inline">
+                            <input type="number" name="ups1InputVoltage" required lay-verify="required"  placeholder="请输入" autocomplete="off"
+                                   class="layui-input">
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">电源A输出电压值</label>
+                        <div class="layui-input-inline">
+                            <input type="number" name="ups1OutputVoltage" required lay-verify="required"
+                                   placeholder="请输入" autocomplete="off"
+                                   class="layui-input">
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">电源B输入电压值</label>
+                        <div class="layui-input-inline">
+                            <input type="number" name="ups2InputVoltage" required lay-verify="required"
+                                   placeholder="请输入" autocomplete="off"
+                                   class="layui-input">
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">电源B输出电压值</label>
+                        <div class="layui-input-inline">
+                            <input type="number" name="ups2OutputVoltage" required lay-verify="required"
+                                   placeholder="请输入" autocomplete="off"
+                                   class="layui-input">
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">电源A剩余容量</label>
+                        <div class="layui-input-inline">
+                            <input type="number" name="ups1DumpEnergy" required lay-verify="required"
+                                   placeholder="请输入" autocomplete="off"
+                                   class="layui-input">
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">电源B剩余容量</label>
+                        <div class="layui-input-inline">
+                            <input type="number" name="ups2DumpEnergy" required lay-verify="required"
+                                   placeholder="请输入" autocomplete="off"
+                                   class="layui-input">
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <div class="layui-input-block">
+                            <button type="submit" class="layui-btn" lay-submit="" lay-filter="form1filter">发送</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="layui-tab-item">
+                <form class="layui-form" th:align="center">
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">监测点里程</label>
+                        <div class="layui-input-inline">
+                            <select id="monitorUnitCode2" name="monitorUnitCode" required lay-verify="required"
+                                    lay-filter="monitorunitcodefilter">
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">全部发送</label>
+                        <div class="layui-input-inline">
+                            <input type="checkbox" name="allmonitorswitch" required lay-verify="required" lay-skin="switch" lay-text="ON|OFF">
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">主机A主备状态</label>
+                        <div class="layui-input-inline">
+                            <select name="controlModuleAHostStatus" required lay-verify="required">
+                                <option value="0">主</option>
+                                <option value="1">备</option>
+                                <option value="2">未知</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">主机A工作状态</label>
+                        <div class="layui-input-inline">
+                            <select name="controlModuleAStatus" required lay-verify="required">
+                                <option value="0">正常</option>
+                                <option value="1">故障</option>
+                                <option value="2">未知</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">主机A网络状态</label>
+                        <div class="layui-input-inline">
+                            <select name="controlModuleANetStatus" required lay-verify="required">
+                                <option value="0">正常</option>
+                                <option value="1">故障</option>
+                                <option value="2">未知</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">主机B主备状态</label>
+                        <div class="layui-input-inline">
+                            <select name="controlModuleBHostStatus" required lay-verify="required">
+                                <option value="0">主</option>
+                                <option value="1">备</option>
+                                <option value="2">未知</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">主机B工作状态</label>
+                        <div class="layui-input-inline">
+                            <select name="controlModuleBStatus" required lay-verify="required">
+                                <option value="0">正常</option>
+                                <option value="1">故障</option>
+                                <option value="2">未知</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">主机B网络状态</label>
+                        <div class="layui-input-inline">
+                            <select name="controlModuleBNetStatus" required lay-verify="required">
+                                <option value="0">正常</option>
+                                <option value="1">故障</option>
+                                <option value="2">未知</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">A板卡1状态</label>
+                        <div class="layui-input-inline">
+                            <select name="boardCardA1Status" required lay-verify="required">
+                                <option value="0">正常</option>
+                                <option value="1">故障</option>
+                                <option value="2">未知</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">A板卡2状态</label>
+                        <div class="layui-input-inline">
+                            <select name="boardCardA2Status" required lay-verify="required">
+                                <option value="0">正常</option>
+                                <option value="1">故障</option>
+                                <option value="2">未知</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">A板卡3状态</label>
+                        <div class="layui-input-inline">
+                            <select name="boardCardA3Status" required lay-verify="required">
+                                <option value="0">正常</option>
+                                <option value="1">故障</option>
+                                <option value="2">未知</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">A板卡4状态</label>
+                        <div class="layui-input-inline">
+                            <select name="boardCardA4Status" required lay-verify="required">
+                                <option value="0">正常</option>
+                                <option value="1">故障</option>
+                                <option value="2">未知</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">A板卡5状态</label>
+                        <div class="layui-input-inline">
+                            <select name="boardCardA5Status" required lay-verify="required">
+                                <option value="0">正常</option>
+                                <option value="1">故障</option>
+                                <option value="2">未知</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">B板卡1状态</label>
+                        <div class="layui-input-inline">
+                            <select name="boardCardB1Status" required lay-verify="required">
+                                <option value="0">正常</option>
+                                <option value="1">故障</option>
+                                <option value="2">未知</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">B板卡2状态</label>
+                        <div class="layui-input-inline">
+                            <select name="boardCardB2Status" required lay-verify="required">
+                                <option value="0">正常</option>
+                                <option value="1">故障</option>
+                                <option value="2">未知</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">B板卡3状态</label>
+                        <div class="layui-input-inline">
+                            <select name="boardCardB3Status" required lay-verify="required">
+                                <option value="0">正常</option>
+                                <option value="1">故障</option>
+                                <option value="2">未知</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">B板卡4状态</label>
+                        <div class="layui-input-inline">
+                            <select name="boardCardB4Status" required lay-verify="required">
+                                <option value="0">正常</option>
+                                <option value="1">故障</option>
+                                <option value="2">未知</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">B板卡5状态</label>
+                        <div class="layui-input-inline">
+                            <select name="boardCardB5Status" required lay-verify="required">
+                                <option value="0">正常</option>
+                                <option value="1">故障</option>
+                                <option value="2">未知</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">Ups1输入状态</label>
+                        <div class="layui-input-inline">
+                            <select name="ups1InputStatus" required lay-verify="required">
+                                <option value="0">正常</option>
+                                <option value="1">故障</option>
+                                <option value="2">未知</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">Ups1输出状态</label>
+                        <div class="layui-input-inline">
+                            <select name="ups1OutputStatus" required lay-verify="required">
+                                <option value="0">正常</option>
+                                <option value="1">故障</option>
+                                <option value="2">未知</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">Ups1网络状态</label>
+                        <div class="layui-input-inline">
+                            <select name="ups1NetStatus" required lay-verify="required">
+                                <option value="0">正常</option>
+                                <option value="1">故障</option>
+                                <option value="2">未知</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">Ups2输入状态</label>
+                        <div class="layui-input-inline">
+                            <select name="ups2InputStatus" required lay-verify="required">
+                                <option value="0">正常</option>
+                                <option value="1">故障</option>
+                                <option value="2">未知</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">Ups2输出状态</label>
+                        <div class="layui-input-inline">
+                            <select name="ups2OutputStatus" required lay-verify="required">
+                                <option value="0">正常</option>
+                                <option value="1">故障</option>
+                                <option value="2">未知</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">Ups2网络状态</label>
+                        <div class="layui-input-inline">
+                            <select name="ups2NetStatus" required lay-verify="required">
+                                <option value="0">正常</option>
+                                <option value="1">故障</option>
+                                <option value="2">未知</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">电源A输入电压值</label>
+                        <div class="layui-input-inline">
+                            <input type="number" name="ups1InputVoltage" required lay-verify="required"  placeholder="请输入" autocomplete="off"
+                                   class="layui-input">
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">电源A输出电压值</label>
+                        <div class="layui-input-inline">
+                            <input type="number" name="ups1OutputVoltage" required lay-verify="required"
+                                   placeholder="请输入" autocomplete="off"
+                                   class="layui-input">
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">电源B输入电压值</label>
+                        <div class="layui-input-inline">
+                            <input type="number" name="ups2InputVoltage" required lay-verify="required"
+                                   placeholder="请输入" autocomplete="off"
+                                   class="layui-input">
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">电源B输出电压值</label>
+                        <div class="layui-input-inline">
+                            <input type="number" name="ups2OutputVoltage" required lay-verify="required"
+                                   placeholder="请输入" autocomplete="off"
+                                   class="layui-input">
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">电源A剩余容量</label>
+                        <div class="layui-input-inline">
+                            <input type="number" name="ups1DumpEnergy" required lay-verify="required"
+                                   placeholder="请输入" autocomplete="off"
+                                   class="layui-input">
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">电源B剩余容量</label>
+                        <div class="layui-input-inline">
+                            <input type="number" name="ups2DumpEnergy" required lay-verify="required"
+                                   placeholder="请输入" autocomplete="off"
+                                   class="layui-input">
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <div class="layui-input-block">
+                            <button type="submit" class="layui-btn" lay-submit="" lay-filter="form2filter">开始</button>
+                            <button type="button" class="layui-btn layui-btn-primary" id="timerStop">停止</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+
+</div>
+</body>
+</html>

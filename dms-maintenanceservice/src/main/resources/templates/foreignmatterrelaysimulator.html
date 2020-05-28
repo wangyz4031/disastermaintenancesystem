@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <link th:href="@{/layui/css/layui.css}" rel="stylesheet" />
+</head>
+<script th:src="@{/jquery/jquery-3.4.1.js}">
+</script>
+<script th:inline="none">
+    var foreignmattertimer=new Object();
+    function sendForeignmatterDevice(data) {
+        $.ajax({
+            url: "/foreignmatterdata/sendForeignMatterData",
+            type: 'POST',
+            data: JSON.stringify(data.field),
+            contentType: "application/json;charset=utf-8",
+            success: function (result) {
+            }
+        });
+    }
+
+
+    layui.use('element', function() {
+        var element = layui.element;
+    });
+    layui.use(['form', 'layedit', 'laydate'], function() {
+        var form = layui.form
+            , layer = layui.layer
+            , layedit = layui.layedit
+            , laydate = layui.laydate;
+        form.render('radio');
+        form.render('select');
+        form.render();
+        //监听提交
+        form.on('submit(form1filter)', function (data) {
+            debugger;
+            if(data.field.allmonitorswitch=="on") {
+                var monitordata=new Object();
+                monitordata = getForeignmatterMonitorInfo()
+                $.each(monitordata, function (index, item) {
+                    var monitorpoint=(item.km*1000+item.meter).toString();
+                    data.field["monitorPointCode"]=monitorpoint;
+                    sendForeignmatterDevice(data);
+                });
+            }
+            else{
+                sendForeignmatterDevice(data);
+            }
+            layer.alert("发送成功");
+            return false;
+        });
+
+        form.on('submit(form2filter)', function (data) {
+            debugger;
+            foreignmattertimer = setInterval(function()   //开启循环：每秒出现一次提示框
+            {
+                if(data.field.allmonitorswitch=="on") {
+                    var monitordata=new Object();
+                    monitordata = getForeignmatterMonitorInfo()
+                    $.each(monitordata, function (index, item) {
+                        var monitorpoint=(item.km*1000+item.meter).toString();
+                        data.field.monitorPointCode=monitorpoint;
+                        sendForeignmatterDevice(data);
+                    });
+                }
+                else{
+                    sendForeignmatterDevice(data);
+                }
+            },1000);
+            return false;
+        });
+    });
+    $(function(){
+        $("#timerStop").click(function(){
+            clearInterval(foreignmattertimer);
+        });
+        var data = new Object();
+        data= getForeignmatterMonitorInfo();
+        $.each(data, function (index, item) {
+            $('#monitorPointCode').append(new Option("K"+item.km+"+"+item.meter,item.km*1000+item.meter));
+            $('#monitorPointCode2').append(new Option("K"+item.km+"+"+item.meter,item.km*1000+item.meter));
+        });
+        layui.form.render("select");
+    });
+
+    function getForeignmatterMonitorInfo() {
+        var datas=null;
+        $.ajax({
+            url: '/monitorpoint/queryAllBySensorType?SensorType=4',
+            type: 'GET',
+            contentType: "application/json;charset=utf-8",
+            async:false,
+            success: function (result) {
+                datas = result.data;
+            }
+        });
+        return datas;
+    }
+
+
+</script>
+<body>
+<div>
+
+    <div class="layui-tab">
+        <ul class="layui-tab-title">
+            <li class="layui-this">正常数据</li>
+            <li>定时数据</li>
+        </ul>
+        <div class="layui-tab-content">
+            <div class="layui-tab-item layui-show">
+                <form class="layui-form" th:align="center">
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">监测点里程</label>
+                        <div class="layui-input-inline">
+                            <select id="monitorPointCode" name="monitorPointCode" required lay-verify="required" lay-filter="monitorpointcodefilter">
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">全部发送</label>
+                        <div class="layui-input-inline">
+                            <input type="checkbox" name="allmonitorswitch" lay-skin="switch" lay-text="ON|OFF">
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">电网1继电器状态</label>
+                        <div class="layui-input-inline">
+                            <select name="electricGrid1RelayStatus" required lay-verify="required">
+                                <option value="1">吸起</option>
+                                <option value="2">落下</option>
+                                <option value="4">不可用</option>
+                                <option value="8">无回采</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">电网2继电器状态</label>
+                        <div class="layui-input-inline">
+                            <select name="electricGrid2RelayStatus" required lay-verify="required">
+                                <option value="1">吸起</option>
+                                <option value="2">落下</option>
+                                <option value="4">不可用</option>
+                                <option value="8">无回采</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">上行临时行车继电器状态</label>
+                        <div class="layui-input-inline">
+                            <select name="upTemporaryDriveRelayStatus" required lay-verify="required">
+                                <option value="1">吸起</option>
+                                <option value="2">落下</option>
+                                <option value="4">不可用</option>
+                                <option value="8">无回采</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">下行临时行车继电器状态</label>
+                        <div class="layui-input-inline">
+                            <select name="downTemporaryDriveRelayStatus" required lay-verify="required">
+                                <option value="1">吸起</option>
+                                <option value="2">落下</option>
+                                <option value="4">不可用</option>
+                                <option value="8">无回采</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">远程恢复继电器状态</label>
+                        <div class="layui-input-inline">
+                            <select name="remoteResumeRelayStatus" required lay-verify="required">
+                                <option value="1">吸起</option>
+                                <option value="2">落下</option>
+                                <option value="4">不可用</option>
+                                <option value="8">无回采</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">调度恢复继电器状态</label>
+                        <div class="layui-input-inline">
+                            <select name="controlResumeRelayStatus" required lay-verify="required">
+                                <option value="1">吸起</option>
+                                <option value="2">落下</option>
+                                <option value="4">不可用</option>
+                                <option value="8">无回采</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">电网1远程实验继电器状态</label>
+                        <div class="layui-input-inline">
+                            <select name="electricGrid1RemoteTestRelayStatus" required lay-verify="required">
+                                <option value="1">吸起</option>
+                                <option value="2">落下</option>
+                                <option value="4">不可用</option>
+                                <option value="8">无回采</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">电网2远程实验继电器状态</label>
+                        <div class="layui-input-inline">
+                            <select name="electricGrid2RemoteTestRelayStatus" required lay-verify="required">
+                                <option value="1">吸起</option>
+                                <option value="2">落下</option>
+                                <option value="4">不可用</option>
+                                <option value="8">无回采</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">上行列控继电器状态</label>
+                        <div class="layui-input-inline">
+                            <select name="upTrainControlRelayStatus" required lay-verify="required">
+                                <option value="1">吸起</option>
+                                <option value="2">落下</option>
+                                <option value="4">不可用</option>
+                                <option value="8">无回采</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">下行列控继电器状态</label>
+                        <div class="layui-input-inline">
+                            <select name="downTrainControlRelayStatus" required lay-verify="required">
+                                <option value="1">吸起</option>
+                                <option value="2">落下</option>
+                                <option value="4">不可用</option>
+                                <option value="8">无回采</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">报警继电器状态</label>
+                        <div class="layui-input-inline">
+                            <select name="alarmRelayStatus" required lay-verify="required">
+                                <option value="1">吸起</option>
+                                <option value="2">落下</option>
+                                <option value="4">不可用</option>
+                                <option value="8">无回采</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <div class="layui-input-block">
+                            <button type="submit" class="layui-btn" lay-submit="" lay-filter="form1filter">发送</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="layui-tab-item">
+                <form class="layui-form" th:align="center">
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">监测点里程</label>
+                        <div class="layui-input-inline">
+                            <select id="monitorPointCode2" name="monitorPointCode" required lay-verify="required"
+                                    lay-filter="monitorpointcodefilter">
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">全部发送</label>
+                        <div class="layui-input-inline">
+                            <input type="checkbox" name="allmonitorswitch" required lay-verify="required" lay-skin="switch" lay-text="ON|OFF">
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">电网1继电器状态</label>
+                        <div class="layui-input-inline">
+                            <select name="electricGrid1RelayStatus" required lay-verify="required">
+                                <option value="1">吸起</option>
+                                <option value="2">落下</option>
+                                <option value="4">不可用</option>
+                                <option value="8">无回采</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">电网2继电器状态</label>
+                        <div class="layui-input-inline">
+                            <select name="electricGrid2RelayStatus" required lay-verify="required">
+                                <option value="1">吸起</option>
+                                <option value="2">落下</option>
+                                <option value="4">不可用</option>
+                                <option value="8">无回采</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">上行临时行车继电器状态</label>
+                        <div class="layui-input-inline">
+                            <select name="upTemporaryDriveRelayStatus" required lay-verify="required">
+                                <option value="1">吸起</option>
+                                <option value="2">落下</option>
+                                <option value="4">不可用</option>
+                                <option value="8">无回采</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">下行临时行车继电器状态</label>
+                        <div class="layui-input-inline">
+                            <select name="downTemporaryDriveRelayStatus" required lay-verify="required">
+                                <option value="1">吸起</option>
+                                <option value="2">落下</option>
+                                <option value="4">不可用</option>
+                                <option value="8">无回采</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">远程恢复继电器状态</label>
+                        <div class="layui-input-inline">
+                            <select name="remoteResumeRelayStatus" required lay-verify="required">
+                                <option value="1">吸起</option>
+                                <option value="2">落下</option>
+                                <option value="4">不可用</option>
+                                <option value="8">无回采</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">调度恢复继电器状态</label>
+                        <div class="layui-input-inline">
+                            <select name="controlResumeRelayStatus" required lay-verify="required">
+                                <option value="1">吸起</option>
+                                <option value="2">落下</option>
+                                <option value="4">不可用</option>
+                                <option value="8">无回采</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">电网1远程实验继电器状态</label>
+                        <div class="layui-input-inline">
+                            <select name="electricGrid1RemoteTestRelayStatus" required lay-verify="required">
+                                <option value="1">吸起</option>
+                                <option value="2">落下</option>
+                                <option value="4">不可用</option>
+                                <option value="8">无回采</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">电网2远程实验继电器状态</label>
+                        <div class="layui-input-inline">
+                            <select name="electricGrid2RemoteTestRelayStatus" required lay-verify="required">
+                                <option value="1">吸起</option>
+                                <option value="2">落下</option>
+                                <option value="4">不可用</option>
+                                <option value="8">无回采</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">上行列控继电器状态</label>
+                        <div class="layui-input-inline">
+                            <select name="upTrainControlRelayStatus" required lay-verify="required">
+                                <option value="1">吸起</option>
+                                <option value="2">落下</option>
+                                <option value="4">不可用</option>
+                                <option value="8">无回采</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">下行列控继电器状态</label>
+                        <div class="layui-input-inline">
+                            <select name="downTrainControlRelayStatus" required lay-verify="required">
+                                <option value="1">吸起</option>
+                                <option value="2">落下</option>
+                                <option value="4">不可用</option>
+                                <option value="8">无回采</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">报警继电器状态</label>
+                        <div class="layui-input-inline">
+                            <select name="alarmRelayStatus" required lay-verify="required">
+                                <option value="1">吸起</option>
+                                <option value="2">落下</option>
+                                <option value="4">不可用</option>
+                                <option value="8">无回采</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <div class="layui-input-block">
+                            <button type="submit" class="layui-btn" lay-submit="" lay-filter="form2filter">开始</button>
+                            <button type="button" class="layui-btn layui-btn-primary" id="timerStop">停止</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+
+</div>
+</body>
+</html>

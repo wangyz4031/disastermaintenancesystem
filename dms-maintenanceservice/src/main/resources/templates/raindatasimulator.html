@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <link th:href="@{/layui/css/layui.css}" rel="stylesheet" />
+</head>
+<script th:src="@{/jquery/jquery-3.4.1.js}">
+</script>
+<script th:inline="none">
+    var raintimer=new Object();
+    function sendRainData(data) {
+        $.ajax({
+            url: "/raindata/sendRainData",
+            type: 'POST',
+            data: JSON.stringify(data.field),
+            contentType: "application/json;charset=utf-8",
+            success: function (result) {
+            }
+        });
+    }
+
+    function sendSpecifiedRainData(data) {
+        $.ajax({
+            url: "/raindata/sendSpecifiedRainData",
+            type: 'POST',
+            data: JSON.stringify(data.field),
+            contentType: "application/json;charset=utf-8",
+            success: function (result) {
+            }
+        });
+    }
+
+    layui.use('element', function() {
+        var element = layui.element;
+    });
+    layui.use(['form', 'layedit', 'laydate'], function() {
+        var form = layui.form
+            , layer = layui.layer
+            , layedit = layui.layedit
+            , laydate = layui.laydate;
+        form.render('radio');
+        form.render('select');
+        form.render();
+        //监听提交
+        form.on('submit(form1filter)', function (data) {
+            if(data.field.allmonitorswitch=="on") {
+                var monitordata=new Object();
+                monitordata = getRainMonitorInfo()
+                $.each(monitordata, function (index, item) {
+                    var monitorpoint=(item.km*1000+item.meter).toString();
+                    data.field["monitorPointCode"]=monitorpoint;
+                    sendRainData(data);
+                });
+            }
+            else{
+                sendRainData(data);
+            }
+            layer.alert("发送成功");
+            return false;
+        });
+
+        form.on('submit(form2filter)', function (data) {
+            var cumulativeRainfall=0;
+            raintimer = setInterval(function()   //开启循环：每秒出现一次提示框
+            {
+                cumulativeRainfall = cumulativeRainfall + Number(data.field.increase);
+                data.field.cumulativeRainfall=cumulativeRainfall;
+                if(data.field.allmonitorswitch=="on") {
+                    var monitordata=new Object();
+                    monitordata = getRainMonitorInfo();
+                    $.each(monitordata, function (index, item) {
+                        var monitorpoint=(item.km*1000+item.meter).toString();
+                        data.field.monitorPointCode=monitorpoint;
+                        sendRainData(data);
+                    });
+                }
+                else{
+                    sendRainData(data);
+                }
+            },60000);
+            return false;
+        });
+        form.on('submit(form3filter)', function (data) {
+            debugger;
+            if(Number(data.field.dayRainfall) < Number(data.field.hourRainfall)){
+                layer.alert("小时雨量必须小于日降雨量");
+                return false;
+            }
+            if(Number(data.field.continuousRainfall) <
+                Number(data.field.dayRainfall)){
+                layer.alert("24小时雨量必须小于连续降雨量");
+                return false;
+            }
+            if(Number(data.field.continuousRainfall) <
+                Number(data.field.hourRainfall)){
+                layer.alert("小时雨量必须小于连续降雨量");
+                return false;
+            }
+            if(data.field.allmonitorswitch=="on") {
+                var monitordata=new Object();
+                monitordata = getRainMonitorInfo()
+                $.each(monitordata, function (index, item) {
+                    var monitorpoint=item.monitorPointCode.toString();
+                    data.field["monitorPointCode"]=monitorpoint;
+                    sendSpecifiedRainData(data);
+                });
+            }
+            else{
+                sendSpecifiedRainData(data);
+            }
+            layer.alert("发送成功");
+            return false;
+        });
+    });
+    $(function(){
+        $("#timerStop").click(function(){
+            clearInterval(raintimer);
+        });
+        var data = new Object();
+        data= getRainMonitorInfo();
+        $.each(data, function (index, item) {
+            $('#monitorPointCode').append(new Option("K"+item.km+"+"+item.meter,item.km*1000+item.meter));
+            $('#monitorPointCode2').append(new Option("K"+item.km+"+"+item.meter,item.km*1000+item.meter));
+            $('#monitorPointCode3').append(new Option("K"+item.km+"+"+item.meter,item.id));
+        });
+        layui.form.render("select");
+    });
+
+    function getRainMonitorInfo() {
+        var datas=null;
+        $.ajax({
+            url: '/monitorpoint/queryAllBySensorType?SensorType=2',
+            type: 'GET',
+            contentType: "application/json;charset=utf-8",
+            async:false,
+            success: function (result) {
+                datas = result.data;
+            }
+        });
+        return datas;
+    }
+
+
+</script>
+<body>
+<div>
+
+    <div class="layui-tab">
+        <ul class="layui-tab-title">
+            <li class="layui-this">正常数据</li>
+            <li>定时数据</li>
+            <li>指定数据发送数据</li>
+        </ul>
+        <div class="layui-tab-content">
+            <div class="layui-tab-item layui-show">
+                <form class="layui-form" th:align="center">
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">监测点里程</label>
+                        <div class="layui-input-inline">
+                            <select id="monitorPointCode" name="monitorPointCode" required lay-verify="required" lay-filter="monitorpointcodefilter">
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">全部发送</label>
+                        <div class="layui-input-inline">
+                            <input type="checkbox" name="allmonitorswitch" lay-skin="switch" lay-text="ON|OFF">
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">累积雨量</label>
+                        <div class="layui-input-inline">
+                            <input type="number" name="cumulativeRainfall" required lay-verify="required"  placeholder="请输入" autocomplete="off"
+                                   class="layui-input">
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <div class="layui-input-block">
+                            <button type="submit" class="layui-btn" lay-submit="" lay-filter="form1filter">发送</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="layui-tab-item">
+                <form class="layui-form" th:align="center">
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">监测点里程</label>
+                        <div class="layui-input-inline">
+                            <select id="monitorPointCode2" name="monitorPointCode" required lay-verify="required"
+                                    lay-filter="monitorpointcodefilter">
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">全部发送</label>
+                        <div class="layui-input-inline">
+                            <input type="checkbox" name="allmonitorswitch" required lay-verify="required" lay-skin="switch" lay-text="ON|OFF">
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">涨幅</label>
+                        <div class="layui-input-inline">
+                            <input type="number" name="increase" required lay-verify="required" placeholder="请输入"
+                                   autocomplete="off"
+                                   class="layui-input">
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <div class="layui-input-block">
+                            <button type="submit" class="layui-btn" lay-submit="" lay-filter="form2filter">开始</button>
+                            <button type="button" class="layui-btn layui-btn-primary" id="timerStop">停止</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="layui-tab-item">
+                <form class="layui-form" th:align="center">
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">监测点里程</label>
+                        <div class="layui-input-inline">
+                            <select id="monitorPointCode3" name="monitorPointCode" required lay-verify="required"
+                                    lay-filter="monitorpointcodefilter">
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">全部发送</label>
+                        <div class="layui-input-inline">
+                            <input type="checkbox" name="allmonitorswitch" required lay-verify="required" lay-skin="switch" lay-text="ON|OFF">
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">小时降雨量</label>
+                        <div class="layui-input-inline">
+                            <input type="number" name="hourRainfall" required lay-verify="required" placeholder="请输入"
+                                   autocomplete="off"
+                                   class="layui-input">
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">24小时降雨量</label>
+                        <div class="layui-input-inline">
+                            <input type="number" name="dayRainfall" required lay-verify="required" placeholder="请输入"
+                                   autocomplete="off"
+                                   class="layui-input">
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">连续降雨量</label>
+                        <div class="layui-input-inline">
+                            <input type="number" name="continuousRainfall" required lay-verify="required" placeholder="请输入"
+                                   autocomplete="off"
+                                   class="layui-input">
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <div class="layui-input-block">
+                            <button type="submit" class="layui-btn" lay-submit="" lay-filter="form3filter">发送</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+
+</div>
+</body>
+</html>

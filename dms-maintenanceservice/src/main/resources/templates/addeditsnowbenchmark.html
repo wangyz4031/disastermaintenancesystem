@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <link th:href="@{/layui/css/layui.css}" rel="stylesheet" />
+</head>
+<script th:src="@{/layui/layui.js}"></script>
+<script th:src="@{/jquery/jquery-3.4.1.js}"></script>
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<script>
+    $(function(){
+        initSelect("railwayAdministrator");
+    });
+    function initSelect(attriName) {
+        $("select[name='" + attriName + "']").each(function () {
+            $(this).children("option").each(function () {
+                // 判断需要对那个选项进行回显
+                if ($("#" + attriName + "").val() == "") {
+                    return;
+                }
+                if (this.value == $("#" + attriName + "").val()) {
+                    // 进行回显
+                    $(this).attr("selected", "selected");
+                }
+
+            });
+        })
+    }
+    layui.use('element', function() {
+        var element = layui.element;
+    });
+    layui.use(['form', 'layedit', 'laydate'], function() {
+        var form = layui.form
+            , layer = layui.layer
+            , layedit = layui.layedit
+            , laydate = layui.laydate;
+        form.render('radio');
+        form.render('select');
+
+        form.on('select(monitorpointcodefilter)', function(data){
+
+            $.ajax({
+                url: "/monitorpoint/queryAllById?id="+data.value,
+                type: 'GET',
+                contentType: "application/json;charset=utf-8",
+                success: function (result) {
+                    $("[name='km']").val(result.data.km);
+                    $("[name='meter']").val(result.data.meter);
+                    $("[name='id']").val(result.data.id);
+                    $("#id").val(result.data.id);
+                    $("[name='monitorUnitCode']").val(result.data.baseStationCode);
+                    $("[name='lineName']").val(result.data.lineName);
+                    $("[name='lineCode']").val(result.data.lineCode);
+                }
+            });
+        });
+
+        //监听提交
+        form.on('submit(filter)', function (data) {
+            data.field["dtype"]=3;
+            if($("#id").val()==""){
+                $.ajax({
+                    url: "/snowbenchmark/insert",
+                    type: 'POST',
+                    data: JSON.stringify(data.field),
+                    contentType: "application/json;charset=utf-8",
+                    success: function (result) {
+                        if (result) {
+                            layer.alert("提交成功");
+                        } else {
+                            layer.alert("提交失败");
+                        }
+                    }
+                });
+            }
+            else {
+                data.field["id"]=$("#id").val();
+                $.ajax({
+                    url: "/snowbenchmark/update",
+                    type: 'POST',
+                    data: JSON.stringify(data.field),
+                    contentType: "application/json;charset=utf-8",
+                    success: function (result) {
+                        if (result) {
+                            layer.alert("提交成功");
+                        } else {
+                            layer.alert("提交失败");
+                        }
+                    }
+                });
+            }
+            return false;
+        });
+    });
+</script>
+<body>
+    <div>
+        <form class="layui-form" th:align="center">
+            <input id="id" type="hidden" th:value="${entityInfo.id}">
+            <input id="railwayAdministrator" type="hidden" th:value="${entityInfo.railwayAdministrator}">
+            <div class="layui-form-item">
+                <label class="layui-form-label">ID</label>
+                <div class="layui-input-inline">
+                    <input type="text" readonly="readonly" name="id" th:value="${entityInfo.id}" lay-verify="required" lay-reqtext="此项是必填项，不能为空" placeholder="请输入" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">线路名称</label>
+                <div class="layui-input-inline">
+                    <input type="text" readonly="readonly" name="lineName" th:value="${entityInfo.lineName}" lay-verify="required" lay-reqtext="此项是必填项，不能为空" placeholder="请输入" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">线路编码</label>
+                <div class="layui-input-inline">
+                    <input type="text" readonly="readonly" name="lineCode" th:value="${entityInfo.lineCode}" lay-verify="required" lay-reqtext="此项是必填项，不能为空" placeholder="请输入" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">监控单元编码</label>
+                <div class="layui-input-inline">
+                    <input type="text" readonly="readonly" name="monitorUnitCode" th:value="${entityInfo.monitorUnitCode}" lay-verify="required" lay-reqtext="此项是必填项，不能为空" placeholder="请输入" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">监测点编码</label>
+                <div class="layui-input-inline">
+                    <select id="monitorPointCode" name="monitorPointCode" th:value="${entityInfo.monitorPointCode}" required lay-verify="required" lay-filter="monitorpointcodefilter">
+                        <span th:each="monitorPoint:${monitorPointEntityList}">
+                            <option th:selected="${monitorPoint.getId() eq entityInfo.monitorPointCode}" th:value="${monitorPoint.getId()}">[[${"K"+monitorPoint.getKm()+"+"+monitorPoint.getMeter()}]]</option>
+                        </span>
+                    </select>
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">雪深基准</label>
+                <div class="layui-input-inline">
+                    <input type="text" name="snowBenchMark" th:value="${entityInfo.snowBenchMark}" lay-verify="required" lay-reqtext="此项是必填项，不能为空" placeholder="请输入" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">千米数</label>
+                <div class="layui-input-inline">
+                    <input type="text" readonly="readonly" name="km" th:value="${entityInfo.km}" lay-verify="required" lay-reqtext="此项是必填项，不能为空" placeholder="请输入" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">米数</label>
+                <div class="layui-input-inline">
+                    <input type="text" readonly="readonly" name="meter" th:value="${entityInfo.meter}" lay-verify="required" lay-reqtext="此项是必填项，不能为空" placeholder="请输入" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">铁路局</label>
+                <div class="layui-input-inline">
+                    <div class="layui-input-inline">
+                        <select name="railwayAdministrator" lay-filter="railwayAdministrator" lay-verify="required" lay-reqtext="此项是必填项，不能为空">
+                            <option value=""></option>
+                            <option value="A">哈尔滨铁路局</option>
+                            <option value="B">沈阳铁路局</option>
+                            <option value="C">北京铁路局</option>
+                            <option value="D">太原铁路局</option>
+                            <option value="E">呼和浩特铁路局</option>
+                            <option value="F">郑州铁路局</option>
+                            <option value="G">武汉铁路局</option>
+                            <option value="H">西安铁路局</option>
+                            <option value="I">济南铁路局</option>
+                            <option value="J">上海铁路局</option>
+                            <option value="K">南昌铁路局</option>
+                            <option value="L">广州铁路(集团)公司</option>
+                            <option value="M">南宁铁路局</option>
+                            <option value="N">成都铁路局</option>
+                            <option value="O">昆明铁路局</option>
+                            <option value="P">兰州铁路局</option>
+                            <option value="Q">乌鲁木齐铁路局</option>
+                            <option value="R">青藏公司</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <div class="layui-input-block">
+                    <button type="submit" class="layui-btn" lay-submit="" lay-filter="filter">提交</button>
+                    <button type="reset" class="layui-btn layui-btn-primary">重置</button>
+                </div>
+            </div>
+
+        </form>
+    </div>
+</body>
+</html>

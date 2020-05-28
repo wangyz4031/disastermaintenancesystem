@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <link th:href="@{/layui/css/layui.css}" rel="stylesheet" />
+</head>
+<script th:src="@{/jquery/jquery-3.4.1.js}"></script>
+<script  th:inline="none">
+    $(function(){
+        $.ajax({
+            url: '/monitorpoint/queryAll',
+            type: 'GET',
+            contentType: "application/json;charset=utf-8",
+            success: function (result) {
+                $('#monitorPointCode').append(new Option("",""));
+                $.each(result.data, function (index, item) {
+                    $('#monitorPointCode').append(new Option("K"+item.km+"+"+item.meter,item.id));
+                });
+                layui.form.render("select");
+            }
+        });
+    });
+    function search(){
+        layui.table.reload('tableReload', {
+            page: {
+                curr: 1 //重新从第 1 页开始
+            }
+            ,where: {
+                monitorPointCode: $("[name='monitorPointCode']").val(),
+                type:$("[name='type']").val(),
+                level:$("[name='level']").val(),
+            }
+        }, 'data');
+    }
+    layui.use('table', function(){
+        var table = layui.table;
+        table.render({
+            elem: '#table'
+            ,url:'/linerule/queryAllLineRuleByLimit'
+            ,toolbar: '#tabletoolBar' //开启头部工具栏，并为其绑定左侧模板
+            ,defaultToolbar: ['filter', 'exports', 'print', { //自定义头部工具栏右侧图标。如无需自定义，去除该参数即可
+                title: '提示'
+                ,layEvent: 'LAYTABLE_TIPS'
+                ,icon: 'layui-icoan-tips'
+            }]
+            ,title: '报警规则信息表'
+            ,cols: [[
+                ,{field:'monitorPointCode', title:'监测点里程', width: 100,templet: function (d) {
+                        var kmMeter=null;
+                        $.ajax({
+                            url: "/monitorpoint/queryAllById?id="+d.monitorPointCode,
+                            type: 'GET',
+                            contentType: "application/json;charset=utf-8",
+                            async: false,
+                            success: function (result) {
+                                kmMeter = "K"+result.data.km+"+"+result.data.meter;
+                            }
+                        });
+                        return kmMeter;
+                }}
+                ,{field:'lineName', title:'线路名称', width:150}
+                ,{field:'lineCode', title:'线路编码', width: 100}
+                ,{field:'bureaCode', title:'局编码', width: 80}
+                ,{field:'startValue', title:'开始值', width: 90}
+                ,{field:'endValue', title:'结束值', width: 90}
+                ,{field:'type', title:'类型', width: 80,templet: function (d) {
+                        switch (d.type) {
+                            case "1":
+                                return "风";
+                            case "2":
+                                return "雨";
+                            case "3":
+                                return "雪";
+                            case "4":
+                                return "异物";
+                        }
+                    }
+                }
+                ,{field:'startSign', title:'开始标记', width: 90,templet: function (d) {
+                        switch (d.startSign) {
+                            case ">":
+                                return "大于";
+                            case ">=":
+                                return "大于等于";
+                        }
+                }}
+                ,{field:'endSign', title:'结束标记', width: 90,templet: function (d) {
+                    switch (d.endSign) {
+                        case "<":
+                            return "小于";
+                        case "<=":
+                            return "小于等于";
+                    }
+                }}
+                ,{field:'subType', title:'报警子类型', width: 110,templet: function (d) {
+                    switch (d.subType) {
+                        case "22":
+                            return "小时降雨量";
+                        case "23":
+                            return "连续降雨量";
+                        case "24":
+                            return "日降雨量";
+                        case "0":
+                            if(d.type=="1"){
+                                return "风速";
+                            }
+                            else if(d.type=="3"){
+                                return "雪深";
+                            }
+                            else if(d.type=="4"){
+                                return "异物";
+                            }
+                    }
+                }}
+                ,{field:'group', title:'所属组', width: 100,templet: function (d) {
+                    switch (d.group) {
+                        case "000":
+                            return "独立组";
+                        case "001":
+                            return "组1";
+                        case "002":
+                            return "组2";
+                        case "003":
+                            return "组2";
+                    }
+                }}
+                ,{field:'modeName', title:'模块名称', width: 100}
+                ,{field:'level', title:'报警级别', width: 100,templet: function (d) {
+                    switch (d.level) {
+                        case 1:
+                            return "一级报警";
+                        case 2:
+                            return "二级报警";
+                        case 3:
+                            return "三级报警";
+                        case 4:
+                            return "四级报警";
+                    }
+                }}
+                ,{field:'limitSpeed', title:'限速值', width: 100}
+                ,{field:'desc', title:'描述', width: 120}
+                ,{field:'alarmTypeCode', title:'报警类型编码', width: 120}
+                ,{field:'alarmTypeName', title:'报警类型名称', width: 120}
+                ,{field:'ableFlag', title:'是否启用',templet: function (d) {
+                    if(d.ableFlag==1){
+                        return "启用"
+                    }
+                    else {
+                        return "不启用";
+                    }
+                },width:90}
+                ,{fixed: 'right', title:'操作', toolbar: '#tableBar', width:150}
+            ]]
+            ,id:'tableReload'
+            ,page: true
+        });
+
+        //头工具栏事件
+        table.on('toolbar(tableFilter)', function(obj){
+            var checkStatus = table.checkStatus(obj.config.id);
+            switch(obj.event){
+                case 'add':
+                    layer.open({
+                        type: 2,
+                        title:"新增",
+                        area:['50%','80%'],
+                        content: '/linerule/forwardAddAndEdit',
+                        cancel: function(index, layero){
+                            //执行重载
+                            table.reload('tableReload', {
+                                page: {
+                                    curr: 1 //重新从第 1 页开始
+                                }
+                            }, 'data');
+                            layer.close(index)
+                            return false;
+                        }
+                    });
+                    break;
+                //自定义头工具栏右侧图标 - 提示
+                case 'LAYTABLE_TIPS':
+                    layer.alert('这是工具栏右侧自定义的一个图标按钮');
+                    break;
+            };
+        });
+
+        //监听行工具事件
+        table.on('tool(tableFilter)', function(obj){
+            var data = obj.data;
+            debugger;
+            //console.log(obj)
+            if(obj.event === 'del'){
+                layer.confirm('真的删除行么', function(index){
+                    $.ajax({
+                        url: "/linerule/delete?id="+data.id,
+                        type: 'DELETE',
+                        contentType: 'application/x-www-form-urlencoded',
+                        success: function (result) {
+                            if (result) {
+                                layer.alert("删除成功");
+                                //执行重载
+                                table.reload('tableReload', {
+                                    page: {
+                                        curr: 1 //重新从第 1 页开始
+                                    }
+                                }, 'data');
+                            } else {
+                                layer.alert("删除失败");
+                            }
+                        }
+                    });
+                });
+            } else if(obj.event === 'edit'){
+                layer.open({
+                    type: 2,
+                    title:"编辑",
+                    area:['50%','80%'],
+                    content: '/linerule/forwardAddAndEdit?id='+data.id+"",
+                    cancel: function(index, layero){
+                        //执行重载
+                        table.reload('tableReload', {
+                            page: {
+                                curr: 1 //重新从第 1 页开始
+                            }
+                        }, 'data');
+                        layer.close(index)
+                        return false;
+                    }
+                });
+            }
+        });
+    });
+</script>
+<body>
+<div >
+    <form class="layui-form">
+        <div class="layui-form-item">
+            <div class="layui-inline">
+                <label class="layui-form-label">监测点里程</label>
+                <div class="layui-input-inline">
+                    <select name="monitorPointCode" id="monitorPointCode" lay-filter="monitorPointCode">
+                    </select>
+                </div>
+            </div>
+            <div class="layui-inline">
+                <label class="layui-form-label">类型</label>
+                <div class="layui-input-inline">
+                    <select name="type" lay-filter="type">
+                        <option value=""></option>
+                        <option value="1">风</option>
+                        <option value="2">雨</option>
+                        <option value="3">雪</option>
+                        <option value="4">异物</option>
+                    </select>
+                </div>
+            </div>
+            <div class="layui-inline">
+                <label class="layui-form-label">报警级别</label>
+                <div class="layui-input-inline">
+                    <select name="level" lay-filter="level">
+                        <option value=""></option>
+                        <option value="1">一级报警</option>
+                        <option value="2">二级报警</option>
+                        <option value="3">三级报警</option>
+                        <option value="4">四级报警</option>
+                    </select>
+                </div>
+            </div>
+            <div class="layui-inline">
+                <!--<button type="submit" class="layui-btn" lay-submit="" lay-filter="sysorgfilter">提交</button>-->
+                <a href="javascript:search()" class="layui-btn">查询</a>
+                <button type="reset" class="layui-btn layui-btn-primary">重置</button>
+            </div>
+        </div>
+    </form>
+</div>
+<table class="layui-hide" id="table" lay-filter="tableFilter"></table>
+<script type="text/html" id="tabletoolBar">
+    <div class="layui-btn-container">
+        <button class="layui-btn layui-btn-sm" lay-event="add">新增</button>
+    </div>
+</script>
+
+<script type="text/html" id="tableBar">
+    <a class="layui-btn layui-btn-xs" lay-event="edit">编辑</a>
+    <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">删除</a>
+</script>
+</body>
+</html>

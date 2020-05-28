@@ -1,0 +1,4 @@
+# Project exclude paths
+/dms-maintenanceservice/target/
+/target/
+.idea

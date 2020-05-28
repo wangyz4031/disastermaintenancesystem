@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <link th:href="@{/layui/css/layui.css}" rel="stylesheet" />
+</head>
+<script th:src="@{/layui/layui.js}"></script>
+<script th:src="@{/jquery/jquery-3.4.1.js}"></script>
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<script>
+    $(function(){
+    });
+    layui.use('element', function() {
+        var element = layui.element;
+    });
+    layui.use(['form', 'layedit', 'laydate'], function() {
+        var form = layui.form
+            , layer = layui.layer
+            , layedit = layui.layedit
+            , laydate = layui.laydate;
+        form.render('radio');
+        form.render('select');
+        //监听提交
+        form.on('submit(filter)', function (data) {
+            if($("#id").val()==""){
+                data.field["sortId"]=1;
+                $.ajax({
+                    url: "/station/insert",
+                    type: 'POST',
+                    data: JSON.stringify(data.field),
+                    contentType: "application/json;charset=utf-8",
+                    success: function (result) {
+                        if (result) {
+                            layer.alert("提交成功");
+                        } else {
+                            layer.alert("提交失败");
+                        }
+                    }
+                });
+            }
+            else {
+                data.field["id"]=$("#id").val();
+                $.ajax({
+                    url: "/station/update",
+                    type: 'POST',
+                    data: JSON.stringify(data.field),
+                    contentType: "application/json;charset=utf-8",
+                    success: function (result) {
+                        if (result) {
+                            layer.alert("提交成功");
+                        } else {
+                            layer.alert("提交失败");
+                        }
+                    }
+                });
+            }
+            return false;
+        });
+    });
+</script>
+<body>
+    <div>
+        <form class="layui-form" th:align="center">
+            <input id="id" type="hidden" th:value="${entityInfo.id}">
+            <div class="layui-form-item">
+                <label class="layui-form-label">ID</label>
+                <div class="layui-input-inline">
+                    <input type="text" name="id" th:value="${entityInfo.id}" lay-verify="required" lay-reqtext="此项是必填项，不能为空" placeholder="请输入" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">线路名称</label>
+                <div class="layui-input-inline">
+                    <input type="text" name="lineName" th:value="${entityInfo.lineName}" lay-verify="required" lay-reqtext="此项是必填项，不能为空" placeholder="请输入" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">线路编码</label>
+                <div class="layui-input-inline">
+                    <input type="text" name="lineCode" th:value="${entityInfo.lineCode}" lay-verify="required" lay-reqtext="此项是必填项，不能为空" placeholder="请输入" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">车站名称</label>
+                <div class="layui-input-inline">
+                    <input type="text" name="stationName" th:value="${entityInfo.stationName}" lay-verify="required" lay-reqtext="此项是必填项，不能为空" placeholder="请输入" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">千米数</label>
+                <div class="layui-input-inline">
+                    <input type="text" name="km" th:value="${entityInfo.km}" lay-verify="required" lay-reqtext="此项是必填项，不能为空" placeholder="请输入" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">米数</label>
+                <div class="layui-input-inline">
+                    <input type="text" name="meter" th:value="${entityInfo.meter}" lay-verify="required" lay-reqtext="此项是必填项，不能为空" placeholder="请输入" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">是否启用</label>
+                <div class="layui-input-inline">
+                    <input type="radio" name="ableFlag" value="1" title="启用" th:attr="checked=${entityInfo.ableFlag == 1?true:false}">
+                    <input type="radio" name="ableFlag" value="0" title="不启用" th:attr="checked=${entityInfo.ableFlag == 0?true:false}">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <div class="layui-input-block">
+                    <button type="submit" class="layui-btn" lay-submit="" lay-filter="filter">提交</button>
+                    <button type="reset" class="layui-btn layui-btn-primary">重置</button>
+                </div>
+            </div>
+
+        </form>
+    </div>
+</body>
+</html>

@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <link th:href="@{/layui/css/layui.css}" rel="stylesheet" />
+</head>
+<script th:src="@{/layui/layui.js}"></script>
+<script th:src="@{/jquery/jquery-3.4.1.js}"></script>
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<script>
+    $(function(){
+        $("select[name='endKmDirection']").each(function() {
+            $(this).children("option").each(function() {
+                if($("#endKmDirection").val()==""){
+                    return;
+                }
+                if (this.value ==$("#endKmDirection").val()) {
+                    // 进行回显
+                    $(this).attr("selected","selected");
+                }
+
+            });
+        })
+        $("select[name='startKmDirection']").each(function() {
+            $(this).children("option").each(function() {
+                if($("#startKmDirection").val()==""){
+                    return;
+                }
+                if (this.value ==$("#startKmDirection").val()) {
+                    // 进行回显
+                    $(this).attr("selected","selected");
+                }
+
+            });
+        })
+
+        $("select[name='bureaCode']").each(function() {
+            $(this).children("option").each(function() {
+                if($("#bureaCode").val()==""){
+                    return;
+                }
+                if (this.value ==$("#bureaCode").val()) {
+                    // 进行回显
+                    $(this).attr("selected","selected");
+                }
+
+            });
+        })
+    });
+    layui.use('element', function() {
+        var element = layui.element;
+    });
+    layui.use(['form', 'layedit', 'laydate'], function() {
+        var form = layui.form
+            , layer = layui.layer
+            , layedit = layui.layedit
+            , laydate = layui.laydate;
+        form.render('radio');
+        form.render('select');
+
+        form.on('select(monitorpointcodefilter)', function(data){
+            $.ajax({
+                url: "/monitorpoint/queryAllRelationMonitorPointsById?id="+data.value,
+                type: 'GET',
+                contentType: "application/json;charset=utf-8",
+                success: function (result) {
+                    $("[name='monitorUnitCode']").val(result.currentMonitorPoint.baseStationCode);
+                    $("[name='lineName']").val(result.currentMonitorPoint.lineName);
+                    $("[name='lineCode']").val(result.currentMonitorPoint.lineCode);
+                    if(result.beforeMonitorPoint!=null){
+                        $("[name='startSegmentKm']").val(result.beforeMonitorPoint.km);
+                        $("[name='startSegmentMeter']").val(result.beforeMonitorPoint.meter);
+                    }
+                    else {
+                        $("[name='startSegmentKm']").val(0);
+                        $("[name='startSegmentMeter']").val(0);
+                    }
+                    if(result.nextMonitorPoint!=null){
+                        $("[name='endSegmentKm']").val(result.nextMonitorPoint.km);
+                        $("[name='endSegmentMeter']").val(result.nextMonitorPoint.meter);
+                    }
+                    else{
+                        $("[name='endSegmentKm']").val(0);
+                        $("[name='endSegmentMeter']").val(0);
+                    }
+                    $("[name='startAreaName']").val(result.startAreaName);
+                    $("[name='endAreaName']").val(result.endAreaName);
+                }
+            });
+        });
+
+        //监听提交
+        form.on('submit(filter)', function (data) {
+            data.field["sortId"]=1;
+            data.field["areaCode"]=111111;
+            data.field["tagSpeed"]=0;
+            data.field.areaName=data.field.startAreaName+"~"+data.field.endAreaName;
+            if($("#id").val()==""){
+                $.ajax({
+                    url: "/processsegment/insertProcessSegment",
+                    type: 'POST',
+                    data: JSON.stringify(data.field),
+                    contentType: "application/json;charset=utf-8",
+                    success: function (result) {
+                        $("#id").val(result.id);
+                        if (result.result) {
+                            layer.alert("提交成功");
+                        } else {
+                            layer.alert("提交失败");
+                        }
+                    }
+                });
+            }
+            else {
+                data.field["id"]=$("#id").val();
+                $.ajax({
+                    url: "/processsegment/update",
+                    type: 'POST',
+                    data: JSON.stringify(data.field),
+                    contentType: "application/json;charset=utf-8",
+                    success: function (result) {
+                        if (result) {
+                            layer.alert("提交成功");
+                        } else {
+                            layer.alert("提交失败");
+                        }
+                    }
+                });
+            }
+            return false;
+        });
+    });
+</script>
+<body>
+    <div>
+        <form class="layui-form" th:align="center">
+            <input id="id" type="hidden" th:value="${entityInfo.id}">
+            <input id="startKmDirection" type="hidden" th:value="${entityInfo.startKmDirection}">
+            <input id="endKmDirection" type="hidden" th:value="${entityInfo.endKmDirection}">
+            <input id="bureaCode" type="hidden" th:value="${entityInfo.bureaCode}">
+            <div class="layui-form-item">
+                <label class="layui-form-label">线路名称</label>
+                <div class="layui-input-inline">
+                    <input type="text" name="lineName" th:value="${entityInfo.lineName}" lay-verify="required" lay-reqtext="此项是必填项，不能为空" placeholder="请输入" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">线路编码</label>
+                <div class="layui-input-inline">
+                    <input type="text" name="lineCode" th:value="${entityInfo.lineCode}" lay-verify="required" lay-reqtext="此项是必填项，不能为空" placeholder="请输入" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+
+            <div class="layui-form-item">
+                <label class="layui-form-label">铁路局</label>
+                <div class="layui-input-inline">
+                    <select name="bureaCode" lay-filter="bureaCode" lay-verify="required" lay-reqtext="此项是必填项，不能为空">
+                        <option value=""></option>
+                        <option value="A">哈尔滨铁路局</option>
+                        <option value="B">沈阳铁路局</option>
+                        <option value="C">北京铁路局</option>
+                        <option value="D">太原铁路局</option>
+                        <option value="E">呼和浩特铁路局</option>
+                        <option value="F">郑州铁路局</option>
+                        <option value="G">武汉铁路局</option>
+                        <option value="H">西安铁路局</option>
+                        <option value="I">济南铁路局</option>
+                        <option value="J">上海铁路局</option>
+                        <option value="K">南昌铁路局</option>
+                        <option value="L">广州铁路(集团)公司</option>
+                        <option value="M">南宁铁路局</option>
+                        <option value="N">成都铁路局</option>
+                        <option value="O">昆明铁路局</option>
+                        <option value="P">兰州铁路局</option>
+                        <option value="Q">乌鲁木齐铁路局</option>
+                        <option value="R">青藏公司</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="layui-form-item">
+                <label class="layui-form-label">监控单元编码</label>
+                <div class="layui-input-inline">
+                    <input type="text" name="monitorUnitCode" th:value="${entityInfo.monitorUnitCode}" lay-verify="required" lay-reqtext="此项是必填项，不能为空" placeholder="请输入" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">监测点编码</label>
+                <div class="layui-input-inline">
+                    <select id="monitorPointCode" name="monitorPointCode" th:value="${entityInfo.monitorPointCode}" required lay-verify="required" lay-filter="monitorpointcodefilter">
+                        <span th:each="monitorPoint:${monitorPointEntityList}">
+                            <option th:selected="${monitorPoint.getId() eq entityInfo.monitorPointCode}" th:value="${monitorPoint.getId()}">[[${"K"+monitorPoint.getKm()+"+"+monitorPoint.getMeter()}]]</option>
+                        </span>
+                    </select>
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">影响区间名称</label>
+                <div class="layui-input-inline" style="width: 100px;">
+                    <input type="text" name="startAreaName" th:value="${entityInfo.areaName.split('~')[0]}" lay-verify="required" lay-reqtext="此项是必填项，不能为空" placeholder="请输入" autocomplete="off" class="layui-input">
+                </div>
+                <div class="layui-form-mid">~</div>
+                <div class="layui-input-inline" style="width: 100px;">
+                    <input type="text" name="endAreaName" th:value="${entityInfo.areaName.split('~')[1]}" lay-verify="required" lay-reqtext="此项是必填项，不能为空" placeholder="请输入" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+
+            <div class="layui-form-item">
+                <label class="layui-form-label">开始前缀</label>
+                <div class="layui-input-inline">
+                    <input type="text" name="startKmPrefix" th:value="${entityInfo.startKmPrefix}" placeholder="请输入" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+
+            <div class="layui-form-item">
+                <label class="layui-form-label">开始千米数</label>
+                <div class="layui-input-inline">
+                    <input type="number" name="startSegmentKm" th:value="${entityInfo.startSegmentKm}" lay-verify="required" lay-reqtext="此项是必填项，不能为空" placeholder="请输入" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">开始米数</label>
+                <div class="layui-input-inline">
+                    <input type="number" name="startSegmentMeter" th:value="${entityInfo.startSegmentMeter}" lay-verify="required" lay-reqtext="此项是必填项，不能为空" placeholder="请输入" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">开始方向</label>
+                <div class="layui-input-inline">
+                    <select name="startKmDirection" lay-filter="startKmDirection">
+                        <option value=""></option>
+                        <option value="l">左向</option>
+                        <option value="r">右向</option>
+                    </select>
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">结束前缀</label>
+                <div class="layui-input-inline">
+                    <input type="text" name="endKmPrefix" th:value="${entityInfo.endKmPrefix}" placeholder="请输入" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">结束千米数</label>
+                <div class="layui-input-inline">
+                    <input type="number" name="endSegmentKm" th:value="${entityInfo.endSegmentKm}" lay-verify="required" lay-reqtext="此项是必填项，不能为空" placeholder="请输入" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">结束米数</label>
+                <div class="layui-input-inline">
+                    <input type="number" name="endSegmentMeter" th:value="${entityInfo.endSegmentMeter}" lay-verify="required" lay-reqtext="此项是必填项，不能为空" placeholder="请输入" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">结束方向</label>
+                <div class="layui-input-inline">
+                    <select name="endKmDirection" lay-filter="endKmDirection">
+                        <option value=""></option>
+                        <option value="l">左向</option>
+                        <option value="r">右向</option>
+                    </select>
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">支线索引</label>
+                <div class="layui-input-inline">
+                    <input type="number" name="divId" th:value="${entityInfo.divId}" lay-verify="required" lay-reqtext="此项是必填项，不能为空" placeholder="请输入" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">是否启用</label>
+                <div class="layui-input-inline">
+                    <input type="radio" name="ableFlag" value="1" title="启用" th:attr="checked=${entityInfo.ableFlag == 1?true:false}">
+                    <input type="radio" name="ableFlag" value="0" title="不启用" th:attr="checked=${entityInfo.ableFlag == 0?true:false}">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <div class="layui-input-block">
+                    <button type="submit" class="layui-btn" lay-submit="" lay-filter="filter">提交</button>
+                    <button type="reset" class="layui-btn layui-btn-primary">重置</button>
+                </div>
+            </div>
+
+        </form>
+    </div>
+</body>
+</html>

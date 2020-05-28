@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <link th:href="@{/layui/css/layui.css}" rel="stylesheet" />
+</head>
+<script th:src="@{/jquery/jquery-3.4.1.js}">
+</script>
+<script th:inline="none">
+    var windtimer=new Object();
+    function sendWindData(data) {
+        $.ajax({
+            url: "/winddata/sendWindData",
+            type: 'POST',
+            data: JSON.stringify(data.field),
+            contentType: "application/json;charset=utf-8",
+            success: function (result) {
+            }
+        });
+    }
+
+
+    layui.use('element', function() {
+        var element = layui.element;
+    });
+    layui.use(['form', 'layedit', 'laydate'], function() {
+        var form = layui.form
+            , layer = layui.layer
+            , layedit = layui.layedit
+            , laydate = layui.laydate;
+        form.render('radio');
+        form.render('select');
+        form.render();
+        //监听提交
+        form.on('submit(form1filter)', function (data) {
+            if(data.field.allmonitorswitch=="on") {
+                var monitordata=new Object();
+                monitordata = getWindMonitorInfo()
+                $.each(monitordata, function (index, item) {
+                    var monitorpoint=(item.km*1000+item.meter).toString();
+                    data.field["monitorPointCode"]=monitorpoint;
+                    sendWindData(data);
+                });
+            }
+            else{
+                sendWindData(data);
+            }
+            layer.alert("发送成功");
+            return false;
+        });
+
+        form.on('submit(form2filter)', function (data) {
+            debugger;
+            var windspeed=new Object();
+            windspeed = Number(data.field.windspeed_min);
+            windtimer = setInterval(function()   //开启循环：每秒出现一次提示框
+            {
+                debugger;
+                windspeed = Number(windspeed) + Number(data.field.increase);
+                if(windspeed > Number(data.field.windspeed_max)){
+                    windspeed = Number(data.field.windspeed_min);
+                }
+                data.field.windSpeed1=windspeed;
+                data.field.windSpeed2=windspeed;
+                data.field.windDirection1=1;
+                data.field.windDirection2=2;
+
+                if(data.field.allmonitorswitch=="on") {
+                    var monitordata=new Object();
+                    monitordata = getWindMonitorInfo()
+                    $.each(monitordata, function (index, item) {
+                        var monitorpoint=(item.km*1000+item.meter).toString();
+                        data.field.monitorPointCode=monitorpoint;
+                        sendWindData(data);
+                    });
+                }
+                else{
+                    sendWindData(data);
+                }
+            },1000);
+            return false;
+        });
+    });
+    $(function(){
+        $("#timerStop").click(function(){
+            clearInterval(windtimer);
+        });
+        var data = new Object();
+        data= getWindMonitorInfo();
+        $.each(data, function (index, item) {
+            $('#monitorPointCode').append(new Option("K"+item.km+"+"+item.meter,item.km*1000+item.meter));
+            $('#monitorPointCode2').append(new Option("K"+item.km+"+"+item.meter,item.km*1000+item.meter));
+        });
+        layui.form.render("select");
+    });
+
+    function getWindMonitorInfo() {
+        var datas=null;
+        $.ajax({
+            url: '/monitorpoint/queryAllBySensorType?SensorType=1',
+            type: 'GET',
+            contentType: "application/json;charset=utf-8",
+            async:false,
+            success: function (result) {
+                datas = result.data;
+            }
+        });
+        return datas;
+    }
+
+
+</script>
+<body>
+<div>
+
+    <div class="layui-tab">
+        <ul class="layui-tab-title">
+            <li class="layui-this">正常风数据</li>
+            <li>定时风数据</li>
+        </ul>
+        <div class="layui-tab-content">
+            <div class="layui-tab-item layui-show">
+                <form class="layui-form" th:align="center">
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">监测点里程</label>
+                        <div class="layui-input-inline">
+                            <select id="monitorPointCode" name="monitorPointCode" required lay-verify="required" lay-filter="monitorpointcodefilter">
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">全部发送</label>
+                        <div class="layui-input-inline">
+                            <input type="checkbox" name="allmonitorswitch" lay-skin="switch" lay-text="ON|OFF">
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">风速1</label>
+                        <div class="layui-input-inline">
+                            <input type="number" name="windSpeed1" required lay-verify="required"  placeholder="请输入" autocomplete="off"
+                                   class="layui-input">
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">风速2</label>
+                        <div class="layui-input-inline">
+                            <input type="number" name="windSpeed2" required lay-verify="required" placeholder="请输入" autocomplete="off"
+                                   class="layui-input">
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">风向1</label>
+                        <div class="layui-input-inline">
+                            <input type="number" name="windDirection1" required lay-verify="required" placeholder="请输入" autocomplete="off"
+                                   class="layui-input">
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">风向2</label>
+                        <div class="layui-input-inline">
+                            <input type="number" name="windDirection2" required lay-verify="required" placeholder="请输入" autocomplete="off"
+                                   class="layui-input">
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <div class="layui-input-block">
+                            <button type="submit" class="layui-btn" lay-submit="" lay-filter="form1filter">发送</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="layui-tab-item">
+                <form class="layui-form" th:align="center">
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">监测点里程</label>
+                        <div class="layui-input-inline">
+                            <select id="monitorPointCode2" name="monitorPointCode" required lay-verify="required"
+                                    lay-filter="monitorpointcodefilter">
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">全部发送</label>
+                        <div class="layui-input-inline">
+                            <input type="checkbox" name="allmonitorswitch" required lay-verify="required" lay-skin="switch" lay-text="ON|OFF">
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">涨幅</label>
+                        <div class="layui-input-inline">
+                            <input type="number" name="increase" required lay-verify="required" placeholder="请输入" autocomplete="off"
+                                   class="layui-input">
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">范围</label>
+                        <div class="layui-input-inline" style="width: 100px;">
+                            <input type="number" name="windspeed_min" required lay-verify="required" placeholder="请输入" autocomplete="off"
+                                   class="layui-input">
+                        </div>
+                        <div class="layui-form-mid">-</div>
+                        <div class="layui-input-inline" style="width: 100px;">
+                            <input type="number" name="windspeed_max" required lay-verify="required" placeholder="请输入" autocomplete="off"
+                                   class="layui-input">
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <div class="layui-input-block">
+                            <button type="submit" class="layui-btn" lay-submit="" lay-filter="form2filter">开始</button>
+                            <button type="button" class="layui-btn layui-btn-primary" id="timerStop">停止</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+
+</div>
+</body>
+</html>

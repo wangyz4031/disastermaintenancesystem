@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <link th:href="@{/layui/css/layui.css}" rel="stylesheet" />
+</head>
+<script th:src="@{/layui/layui.js}"></script>
+<script th:src="@{/jquery/jquery-3.4.1.js}"></script>
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<script>
+    function initSelect(attriName) {
+        $("select[name='" + attriName + "']").each(function () {
+            $(this).children("option").each(function () {
+                // 判断需要对那个选项进行回显
+                if ($("#" + attriName + "").val() == "") {
+                    return;
+                }
+                if (this.value == $("#" + attriName + "").val()) {
+                    // 进行回显
+                    $(this).attr("selected", "selected");
+                }
+
+            });
+        })
+    }
+
+    $(function(){
+        initSelect("type");
+        initSelect("startSign");
+        initSelect("endSign");
+        initSelect("subType");
+        initSelect("level");
+        initSelect("modeName");
+        initSelect("bureaCode");
+        initSelect("group");
+    });
+    layui.use('element', function() {
+        var element = layui.element;
+    });
+    layui.use(['form', 'layedit', 'laydate'], function() {
+        var form = layui.form
+            , layer = layui.layer
+            , layedit = layui.layedit
+            , laydate = layui.laydate;
+        form.render('radio');
+        form.render('select');
+
+
+        form.on('select(monitorpointcodefilter)', function(data){
+            $.ajax({
+                url: "/monitorpoint/queryAllById?id="+data.value,
+                type: 'GET',
+                contentType: "application/json;charset=utf-8",
+                success: function (result) {
+                    $("[name='alarmTypeCode']").val(result.data.sensorType);
+                    $("[name='type']").val(result.data.sensorType);
+                    switch (result.data.sensorType) {
+                        case 1:
+                            $("[name='alarmTypeName']").val("风");
+                            break;
+                        case 2:
+                            $("[name='alarmTypeName']").val("雨");
+                            break;
+                        case 3:
+                            $("[name='alarmTypeName']").val("雪");
+                            break;
+                        case 4:
+                            $("[name='alarmTypeName']").val("异物");
+                            break;
+                    }
+                }
+            });
+        });
+
+        //监听提交
+        form.on('submit(filter)', function (data) {
+            if($("#id").val()==""){
+                $.ajax({
+                    url: "/linerule/insertLineRule",
+                    type: 'POST',
+                    data: JSON.stringify(data.field),
+                    contentType: "application/json;charset=utf-8",
+                    success: function (result) {
+                        $("#id").val(result.id);
+                        if (result.result) {
+                            layer.alert("提交成功");
+                        } else {
+                            layer.alert("提交失败");
+                        }
+                    }
+                });
+            }
+            else {
+                data.field["id"]=$("#id").val();
+                $.ajax({
+                    url: "/linerule/update",
+                    type: 'POST',
+                    data: JSON.stringify(data.field),
+                    contentType: "application/json;charset=utf-8",
+                    success: function (result) {
+                        if (result) {
+                            layer.alert("提交成功");
+                        } else {
+                            layer.alert("提交失败");
+                        }
+                    }
+                });
+            }
+            return false;
+        });
+    });
+</script>
+<body>
+    <div>
+        <form class="layui-form" th:align="center">
+            <input id="id" type="hidden" th:value="${entityInfo.id}">
+            <input id="startSign" type="hidden" th:value="${entityInfo.startSign}">
+            <input id="endSign" type="hidden" th:value="${entityInfo.endSign}">
+            <input id="subType" type="hidden" th:value="${entityInfo.subType}">
+            <input id="level" type="hidden" th:value="${entityInfo.level}">
+            <input id="modeName" type="hidden" th:value="${entityInfo.modeName}">
+            <input id="bureaCode" type="hidden" th:value="${entityInfo.bureaCode}">
+            <input id="group" type="hidden" th:value="${entityInfo.group}">
+            <div class="layui-form-item">
+                <label class="layui-form-label">监测点编码</label>
+                <div class="layui-input-inline">
+                    <select id="monitorPointCode" name="monitorPointCode" th:value="${entityInfo.monitorPointCode}" required lay-verify="required" lay-filter="monitorpointcodefilter">
+                        <span th:each="monitorPoint:${monitorPointEntityList}">
+                            <option th:selected="${monitorPoint.getId() eq entityInfo.monitorPointCode}" th:value="${monitorPoint.getId()}">[[${"K"+monitorPoint.getKm()+"+"+monitorPoint.getMeter()}]]</option>
+                        </span>
+                    </select>
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">线路名称</label>
+                <div class="layui-input-inline">
+                    <input type="text" name="lineName" th:value="${entityInfo.lineName}" lay-verify="required" lay-reqtext="此项是必填项，不能为空" placeholder="请输入" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">线路编码</label>
+                <div class="layui-input-inline">
+                    <input type="text" name="lineCode" th:value="${entityInfo.lineCode}" lay-verify="required" lay-reqtext="此项是必填项，不能为空" placeholder="请输入" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+
+            <div class="layui-form-item">
+                <label class="layui-form-label">开始值</label>
+                <div class="layui-input-inline">
+                    <input type="number" name="startValue" th:value="${entityInfo.startValue}" lay-verify="required" lay-reqtext="此项是必填项，不能为空" placeholder="请输入" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+
+            <div class="layui-form-item">
+                <label class="layui-form-label">结束值</label>
+                <div class="layui-input-inline">
+                    <input type="number" name="endValue" th:value="${entityInfo.endValue}"  placeholder="请输入" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">类型</label>
+                <div class="layui-input-inline">
+                    <input type="text"  readonly="readonly" name="type" th:value="${entityInfo.type}" lay-verify="required" lay-reqtext="此项是必填项，不能为空" placeholder="请输入" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">开始标记</label>
+                <div class="layui-input-inline">
+                    <select name="startSign" lay-filter="startSign" lay-verify="required" lay-reqtext="此项是必填项，不能为空">
+                        <option value=""></option>
+                        <option value=">">大于</option>
+                        <option value=">=">大于等于</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="layui-form-item">
+                <label class="layui-form-label">结束标记</label>
+                <div class="layui-input-inline">
+                    <select name="endSign" lay-filter="endSign"  lay-verify="required" lay-reqtext="此项是必填项，不能为空">
+                        <option value=""></option>
+                        <option value="<">小于</option>
+                        <option value="<=">小于等于</option>
+                    </select>
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">报警子类型</label>
+                <div class="layui-input-inline">
+                    <select name="subType" lay-filter="subType" lay-verify="required" lay-reqtext="此项是必填项，不能为空">
+                        <option value=""></option>
+                        <option value="22">小时降雨量</option>
+                        <option value="23">连续降雨量</option>
+                        <option value="24">日降雨量</option>
+                        <option value="0">其他</option>
+                    </select>
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">所属组</label>
+                <div class="layui-input-inline">
+                    <select name="group" lay-filter="group" lay-verify="required" lay-reqtext="此项是必填项，不能为空">
+                        <option value=""></option>
+                        <option value="000">独立组</option>
+                        <option value="001">组1</option>
+                        <option value="002">组2</option>
+                        <option value="003">组3</option>
+                    </select>
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">模块名称</label>
+                <div class="layui-input-inline">
+                    <select name="modeName" lay-filter="modeName" lay-verify="required" lay-reqtext="此项是必填项，不能为空">
+                        <option value=""></option>
+                        <option value="风1级报警">风1级报警</option>
+                        <option value="风2级报警">风2级报警</option>
+                        <option value="风3级报警">风3级报警</option>
+                        <option value="风4级报警">风4级报警</option>
+                        <option value="雨1级报警">雨1级报警</option>
+                        <option value="雨2级报警">雨2级报警</option>
+                        <option value="雨3级报警">雨3级报警</option>
+                        <option value="雨4级报警">雨4级报警</option>
+                        <option value="雪1级报警">雪1级报警</option>
+                        <option value="异物报警">异物报警</option>
+                    </select>
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">级别</label>
+                <div class="layui-input-inline">
+                    <select name="level" lay-filter="level" lay-verify="required" lay-reqtext="此项是必填项，不能为空">
+                        <option value=""></option>
+                        <option value="1">一级报警</option>
+                        <option value="2">二级报警</option>
+                        <option value="3">三级报警</option>
+                        <option value="4">四级报警</option>
+                    </select>
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">限速值</label>
+                <div class="layui-input-inline">
+                    <input type="number" name="limitSpeed" th:value="${entityInfo.limitSpeed}" lay-verify="required" lay-reqtext="此项是必填项，不能为空" placeholder="请输入" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">描述</label>
+                <div class="layui-input-inline">
+                    <input type="text" name="desc" th:value="${entityInfo.desc}" lay-verify="required" lay-reqtext="此项是必填项，不能为空" placeholder="请输入" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">报警类型编码</label>
+                <div class="layui-input-inline">
+                    <input type="text"  readonly="readonly" name="alarmTypeCode" th:value="${entityInfo.alarmTypeCode}" lay-verify="required" lay-reqtext="此项是必填项，不能为空" placeholder="请输入" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">报警类型名称</label>
+                <div class="layui-input-inline">
+                    <input type="text"  readonly="readonly" name="alarmTypeName" th:value="${entityInfo.alarmTypeName}" lay-verify="required" lay-reqtext="此项是必填项，不能为空" placeholder="请输入" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">局编码</label>
+                <div class="layui-input-inline">
+                    <select name="bureaCode" lay-filter="bureaCode" lay-verify="required" lay-reqtext="此项是必填项，不能为空">
+                        <option value=""></option>
+                        <option value="A">哈尔滨铁路局</option>
+                        <option value="B">沈阳铁路局</option>
+                        <option value="C">北京铁路局</option>
+                        <option value="D">太原铁路局</option>
+                        <option value="E">呼和浩特铁路局</option>
+                        <option value="F">郑州铁路局</option>
+                        <option value="G">武汉铁路局</option>
+                        <option value="H">西安铁路局</option>
+                        <option value="I">济南铁路局</option>
+                        <option value="J">上海铁路局</option>
+                        <option value="K">南昌铁路局</option>
+                        <option value="L">广州铁路(集团)公司</option>
+                        <option value="M">南宁铁路局</option>
+                        <option value="N">成都铁路局</option>
+                        <option value="O">昆明铁路局</option>
+                        <option value="P">兰州铁路局</option>
+                        <option value="Q">乌鲁木齐铁路局</option>
+                        <option value="R">青藏公司</option>
+                    </select>
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">是否启用</label>
+                <div class="layui-input-inline">
+                    <input type="radio" name="ableFlag" value="1" title="启用" th:attr="checked=${entityInfo.ableFlag == 1?true:false}">
+                    <input type="radio" name="ableFlag" value="0" title="不启用" th:attr="checked=${entityInfo.ableFlag == 0?true:false}">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <div class="layui-input-block">
+                    <button type="submit" class="layui-btn" lay-submit="" lay-filter="filter">提交</button>
+                    <button type="reset" class="layui-btn layui-btn-primary">重置</button>
+                </div>
+            </div>
+
+        </form>
+    </div>
+</body>
+</html>

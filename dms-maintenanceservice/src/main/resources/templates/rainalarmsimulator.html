@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <link th:href="@{/layui/css/layui.css}" rel="stylesheet" />
+</head>
+<script th:src="@{/jquery/jquery-3.4.1.js}">
+</script>
+<script th:inline="none">
+
+    layui.use('element', function() {
+        var element = layui.element;
+    });
+    layui.use(['form', 'layedit', 'laydate'], function() {
+        var form = layui.form
+            , layer = layui.layer
+            , layedit = layui.layedit
+            , laydate = layui.laydate;
+        debugger;
+        form.render('radio');
+        form.render('select');
+        //监听提交
+        form.on('submit(filter)', function (data) {
+            $.ajax({
+                url: "/rainsnowswitch/setSwitchInfo",
+                type: 'POST',
+                data: JSON.stringify(data.field),
+                contentType: "application/json;charset=utf-8",
+                success: function (result) {
+                    if (result) {
+                        layer.alert("提交成功");
+                    } else {
+                        layer.alert("提交失败");
+                    }
+                }
+            });
+            return false;
+        });
+    });
+    $(function(){
+        debugger;
+        $.ajax({
+            url: '/rainsnowswitch/getSwitchInfo',
+            type: 'GET',
+            contentType: "application/json;charset=utf-8",
+            success: function (result) {
+                if(result.rainDataFlag==null || result.rainDataFlag==1){
+                    $("input[name='rainDataFlag'][value='1']").attr("checked",true);
+                }
+                else{
+                    $("input[name='rainDataFlag'][value='0']").attr("checked",true);
+                }
+                if(result.rainSensorFlag==null || result.rainSensorFlag==1){
+                    $("input[name='rainSensorFlag'][value='1']").attr("checked",true);
+                }
+                else{
+                    $("input[name='rainSensorFlag'][value='0']").attr("checked",true);
+                }
+                if(result.snowDataFlag==null || result.snowDataFlag==1){
+                    $("input[name='snowDataFlag'][value='1']").attr("checked",true);
+                }
+                else{
+                    $("input[name='snowDataFlag'][value='0']").attr("checked",true);
+                }
+
+                if(result.snowSensorFlag==null || result.snowSensorFlag==1){
+                    $("input[name='snowSensorFlag'][value='1']").attr("checked",true);
+                }
+                else{
+                    $("input[name='snowSensorFlag'][value='0']").attr("checked",true);
+                }
+                layui.form.render("radio");
+            }
+        });
+    });
+
+</script>
+<body>
+<div>
+    <form class="layui-form" th:align="center">
+        <div class="layui-form-item">
+            <label class="layui-form-label">雨监测</label>
+            <div class="layui-input-inline">
+                <input type="radio" name="rainDataFlag" value="1" title="启用">
+                <input type="radio" name="rainDataFlag" value="0" title="不启用">
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">雨传感器</label>
+            <div class="layui-input-inline">
+                <input type="radio" name="rainSensorFlag" value="1" title="启用">
+                <input type="radio" name="rainSensorFlag" value="0" title="不启用">
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">雪监测</label>
+            <div class="layui-input-inline">
+                <input type="radio" name="snowDataFlag" value="1" title="启用">
+                <input type="radio" name="snowDataFlag" value="0" title="不启用">
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">雪传感器</label>
+            <div class="layui-input-inline">
+                <input type="radio" name="snowSensorFlag" value="1" title="启用">
+                <input type="radio" name="snowSensorFlag" value="0" title="不启用">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <div class="layui-input-block">
+                <button type="submit" class="layui-btn" lay-submit="" lay-filter="filter">提交</button>
+                <button type="reset" class="layui-btn layui-btn-primary">重置</button>
+            </div>
+        </div>
+    </form>
+</div>
+</body>
+</html>
